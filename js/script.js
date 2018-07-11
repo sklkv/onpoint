@@ -10,11 +10,20 @@ let container = document.querySelector('.container'),
     startX = null,
     endX = null,
     presentX = null,
-    xCount = 0,
-    leftPosition = 0,
-    currentPosition = null,
-    gSwipe = 1024;
-
+    gSwipe = 1024,
+    minX = 190,
+    maxX = 838,
+    minY = 645,
+    maxY = 730,
+    presentY = null,
+    startPos = 209,
+    prevEnd = null,
+    prevPresent = null,
+    count = 0,
+    startTrack = 0,
+    middleTrack = 313,
+    endTrack = 619,
+    back = null;
 
 function onDown(event){
     startY = event.changedTouches[0].clientY;
@@ -29,7 +38,7 @@ function move(event){
         count--;
         container.style.setProperty('--vSwipe', count*(-vSwipe) + 'px');
     //down
-    } else if ((Math.abs(distanceY) > distance) && (distanceY > 0) && (count < n - 1)){
+    } else if ((Math.abs(distanceY) > distance) && (distanceY > 0) && (count < n - 1 )){
         count++;
         container.style.setProperty('--vSwipe', count*(-vSwipe) + 'px');
     }
@@ -38,32 +47,69 @@ function move(event){
 
 function grabTrack(event){
     startX = event.changedTouches[0].clientX;
-    if (xCount < 1) leftPosition = startX;
+    startY = event.changedTouches[0].clientY;
+    if (!((startX >= minX) && (startX <= maxX) && (startY >= minY) && (startY <= maxY))){startX = null}
+    startX -= (startPos - back);
+    if (startX < 0) startX = null;
+    console.log('start ' + startX);
     event.preventDefault();
 }
 
 function moveTrack(event){
-    presentX = event.changedTouches[0].clientX;
-    if (xCount < 1){ track.style.setProperty('--track', presentX - startX + 'px');
-    } else {
-        track.style.setProperty('--track', presentX - leftPosition + 'px');
-    }
-    currentPosition = presentX - leftPosition;
-    if (currentPosition <= 95){
-        thirdSlide.style.setProperty('--gSwipe', '0px');
-    } else if ((currentPosition >= 190) || (currentPosition <= 410)){
-        thirdSlide.style.setProperty('--gSwipe', -gSwipe + 'px');
-    } else if (currentPosition >= 520){
-        thirdSlide.style.setProperty('--gSwipe', 2*(-gSwipe) + 'px');
-    }
-    console.log('current position: ' + (currentPosition));
+        presentX = event.changedTouches[0].clientX;
+        presentY = event.changedTouches[0].clientY;
+        if (!((presentX >= minX) && (presentX <= maxX) && (presentY >= minY) && (presentY <= maxY))){presentX = null}
+        presentX -= (startPos - back);
+        if (presentX < 0) presentX = null;
+        if (presentX != null){
+            prevPresent = presentX;
+        } else {
+            presentX = prevPresent;
+        }
+        track.style.setProperty('--track', presentX + 'px');
+        if (presentX <= 150 + back){
+            thirdSlide.style.setProperty('--gSwipe', 0*gSwipe + 'px');
+        } else if (presentX >= 155 + back && presentX <= 450 + back){
+            thirdSlide.style.setProperty('--gSwipe', -gSwipe + 'px');
+        } else if (presentX >= 455 + back){
+            thirdSlide.style.setProperty('--gSwipe', 2*-gSwipe + 'px');
+        }
+
+
     event.preventDefault();
 }
 
-function endTrack(event){
+function releaseTrack(event){
     endX = event.changedTouches[0].clientX;
-    track.style.setProperty('--track', endX - leftPosition + 'px');
-    xCount++;
+    endY = event.changedTouches[0].clientY;
+    if (!((endX >= minX) && (endX <= maxX) && (endY >= minY) && (endY <= maxY))){endX = null}
+    endX -= (startPos - back);
+    if (endX < 0) endX = null;
+    if (endX != null){
+        prevEnd = endX;
+    } else {
+        endX = prevEnd;
+    }
+    track.style.setProperty('--track', endX + 'px');
+    let lengths = [endX - startTrack, endX - middleTrack, endX - endTrack],
+        k = 0,
+        min = Math.abs(lengths[0]);
+    for (let i = 0; i < lengths.length; i++){
+        if (Math.abs(lengths[i]) < min){
+            min = Math.abs(lengths[i]);
+            k = i;
+        }
+    }
+    switch(k){
+        case 0: track.style.setProperty('--back', -lengths[k] + 'px');
+        break;
+        case 1: track.style.setProperty('--back', -lengths[k] + 'px');
+        break;
+        case 2: track.style.setProperty('--back', -lengths[k] + 'px');
+        break;
+    }
+    back = lengths[k];
+    console.log('end ' + endX);
     event.preventDefault();
 }
 
@@ -73,5 +119,4 @@ container.addEventListener('touchend', move, false);
 //track
 track.addEventListener('touchstart', grabTrack, false);
 track.addEventListener('touchmove', moveTrack, false);
-track.addEventListener('touchend', endTrack, false);
-//gSwipe
+track.addEventListener('touchend', releaseTrack, false);
